@@ -9,6 +9,14 @@ const logQuery = (statement, parameters) => {
   console.log(formattedTimeStamp, statement, parameters);
 };
 
+const PG_ENV = {
+  user: config.PGUSER,
+  password: config.PGPASSWORD,
+  host: config.PGHOST,
+  port: config.PGPORT,
+  database: config.PGDATABASE,
+  ssl: false
+}
 
 const CONNECTION = {
   connectionString: config.DATABASE_URL,
@@ -17,7 +25,7 @@ const CONNECTION = {
 
 module.exports = {
   async dbQuery(statement, ...parameters) {
-    let client = new Client(CONNECTION);
+    let client = new Client(PG_ENV);
 
     await client.connect();
     logQuery(statement, parameters);
