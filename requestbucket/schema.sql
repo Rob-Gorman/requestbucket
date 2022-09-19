@@ -8,7 +8,7 @@ CREATE TABLE buckets (
 
 CREATE TABLE requests (
   id serial PRIMARY KEY,
-  bucket_id integer references buckets(id),
+  bucket_id integer references buckets(id) ON DELETE CASCADE,
   request_type varchar(10),
   mongo_document_ref text
 );
