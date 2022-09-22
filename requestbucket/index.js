@@ -37,7 +37,10 @@ app.use((req, res, next) => {
   return next();
 });
 
-mongoose.connect(process.env.MONGODB_URI)
+const MONGODB_URI =
+  `mongodb://${process.env.MONGODB_HOST}:${process.env.MONGODB_PORT}/`
+
+mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('connected to MongoDB');
     })
@@ -71,7 +74,7 @@ app.post('/create', (req, res) => {
   }
 })
 
-// - Bucket "page" that collects all incoming requests
+// - Bucket endpoint that collects all incoming requests
 app.all(`/:bucketUrl`, (req, res) => {
   const bucketUrl = req.params.bucketUrl
   const {headers, method, body } = req

@@ -1,16 +1,15 @@
 package environment
 
 import (
+	"fmt"
 	"os"
-
-	"github.com/subosito/gotenv"
 )
 
 type Env struct {
 	Logfile   string
-	Host      string
-	Port      string
-	User      string
+	Pghost    string
+	Pgport    string
+	Pguser    string
 	Password  string
 	Pgdbname  string
 	Table     string
@@ -20,16 +19,19 @@ type Env struct {
 }
 
 func LoadDotenv() *Env {
-	gotenv.Load("./environment/.env")
+	// gotenv.Load()
+	// MONGO_URI := fmt.Sprintf("mongodb://localhost:27017/")
+	MONGO_URI := fmt.Sprintf("mongodb://%s:%s/",
+		os.Getenv("MONGODB_HOST"), os.Getenv("MONGODB_PORT"))
 	env := &Env{
 		Logfile:   os.Getenv("LOGFILE"),
-		Host:      os.Getenv("HOST"),
-		Port:      os.Getenv("PORT"),
-		User:      os.Getenv("USER"),
+		Pghost:    os.Getenv("PGHOST"),
+		Pgport:    os.Getenv("PGPORT"),
+		Pguser:    os.Getenv("PGUSER"),
 		Password:  os.Getenv("PASSWORD"),
-		Pgdbname:  os.Getenv("PGDBNAME"),
+		Pgdbname:  os.Getenv("PGDATABASE"),
 		Table:     os.Getenv("PGTABLE"),
-		MongoUri:  os.Getenv("MONGODB_URI"),
+		MongoUri:  MONGO_URI,
 		Mongodb:   os.Getenv("MONGODB"),
 		MongoColl: os.Getenv("MONGODB_COLL"),
 	}

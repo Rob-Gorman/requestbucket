@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  requestbucket:
+    image: "requestbucket"
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - PGHOST=postgres
+      - MONGODB_HOST=mongo
+    depends_on:
+      - postgres
+      - mongo
+  
+  postgres:
+    image: postgres
+    ports:
+      - ${PGPORT}:${PGPORT}
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_PASSWORD=${PGPASSWORD}
+      - POSTGRES_DB=${PGDATABASE}
+    volumes:
+      - ./requestbucket/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+  
+  mongo:
+    image: mongo
+    ports:
+      - ${MONGODB_PORT}:${MONGODB_PORT}
+  
+  requestcron:
+    image: "reqcron"
+    env_file:
+      - .env
+    depends_on:
+      - requestbucket

@@ -5,9 +5,9 @@ WORKDIR /react
 
 COPY ./frontend .
 
-RUN npm install
+RUN npm i
 
-RUN npm build
+RUN npm run build
 
 ## App
 FROM node AS requestbucket
@@ -18,7 +18,7 @@ COPY --from=static /react/build .
 
 COPY ./requestbucket .
 
-RUN npm install
+RUN npm i
 
 CMD ["node", "index.js"]
 
