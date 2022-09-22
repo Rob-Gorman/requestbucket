@@ -14,7 +14,7 @@ FROM node AS requestbucket
 
 WORKDIR /requestbucket
 
-COPY --from=static /react/build .
+COPY --from=static /react/build ./build
 
 COPY ./requestbucket .
 

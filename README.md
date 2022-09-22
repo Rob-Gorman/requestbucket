@@ -11,7 +11,10 @@ Application for observing web requests -- method, headers, body, etc
 
 ## Local Deploy
 
-Can run locally with `bash localdeploy.sh`
+Containerized and run locally with `bash localdeploy.sh`
+
 This script will build the two Docker images for the Node.js server and the Go cronjob
+
 It will also run `docker compose up` to run the required containers with the necessary env variables
+
 May need to run as `sudo` on some distributions

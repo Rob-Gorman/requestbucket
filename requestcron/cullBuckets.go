@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"reqcron/environment"
+	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -26,8 +27,6 @@ var env *environment.Env
 
 func main() {
 	env = environment.LoadDotenv()
-	fmt.Printf("FROM ENV PACKAGE%+v", env)
-	fmt.Print(env.MongoUri)
 	log := retrieveLog()
 	defer log.Close()
 
@@ -59,22 +58,33 @@ func writeLog(log *os.File, value string) {
 	log.WriteString(fmt.Sprintf("%d:%d:%d DELETED:%v\n", a, b, c, value))
 }
 
+// iterates through oldest buckets and deletes any older than BUCKETS_TTL env var
 func cullPGBuckets(db *sql.DB, log *os.File) {
 	for rowCount(db, env.Table) > 0 {
-		selectstmt := fmt.Sprintf("SELECT * FROM %s order by id limit 1", env.Table)
-		oldestRow := bucket{}
-		err3 := db.QueryRow(selectstmt).Scan(&oldestRow.id, &oldestRow.url, &oldestRow.created_at)
-		CheckError(err3)
+		oldestBucket := getOldestBucket(db)
 
-		if time.Since(*oldestRow.created_at).Hours() > 0 {
-			bucketId := *oldestRow.id
-			cullPGRequests(db, bucketId)
-			removeRow(db, bucketId)
-			writeLog(log, *oldestRow.url)
-		} else {
-			break
+		TTL, err := strconv.ParseFloat(os.Getenv("BUCKET_TTL"), 64)
+		CheckError(err)
+
+		if time.Since(*oldestBucket.created_at).Hours() > TTL {
+			deleteBucket(db, oldestBucket)
+			writeLog(log, *oldestBucket.url)
 		}
 	}
+}
+
+func getOldestBucket(db *sql.DB) *bucket {
+	selectstmt := fmt.Sprintf("SELECT * FROM %s order by id limit 1", env.Table)
+	oldestRow := bucket{}
+	err := db.QueryRow(selectstmt).Scan(&oldestRow.id, &oldestRow.url, &oldestRow.created_at)
+	CheckError(err)
+	return &oldestRow
+}
+
+func deleteBucket(db *sql.DB, oldestBucket *bucket) {
+	bucketId := *oldestBucket.id
+	cullPGRequests(db, bucketId)
+	removeRow(db, bucketId)
 }
 
 func cullPGRequests(db *sql.DB, bucketId int) {
@@ -86,18 +96,29 @@ func cullPGRequests(db *sql.DB, bucketId int) {
 }
 
 func removeMongoIds(db *sql.DB, bucketId int) {
-	querystmt := fmt.Sprintf("SELECT mongo_document_ref FROM requests WHERE bucket_id=%d", bucketId)
-	results, err := db.Query(querystmt)
-	CheckError(err)
-	mongoIds := marshalMongoIds(results)
+	mongoIds := getMongoIds(db, bucketId)
 
+	collection := getMongoCollection()
+
+	for _, id := range mongoIds {
+		deleteMongoDoc(collection, id)
+	}
+}
+
+func getMongoCollection() *mongo.Collection {
 	client, err2 := mongo.Connect(context.Background(), options.Client().ApplyURI(env.MongoUri))
 	CheckError(err2)
 
 	collection := client.Database(env.Mongodb).Collection(env.MongoColl)
-	for _, id := range mongoIds {
-		deleteMongoDoc(collection, id)
-	}
+	return collection
+}
+
+func getMongoIds(db *sql.DB, bucketId int) (mongoIds []string) {
+	querystmt := fmt.Sprintf("SELECT mongo_document_ref FROM requests WHERE bucket_id=%d", bucketId)
+	results, err := db.Query(querystmt)
+	CheckError(err)
+	mongoIds = marshalMongoIds(results)
+	return
 }
 
 func marshalMongoIds(results *sql.Rows) []string {
@@ -114,8 +135,8 @@ func deleteMongoDoc(coll *mongo.Collection, id string) {
 	idPrimitive, err := primitive.ObjectIDFromHex(id)
 	CheckError(err)
 	filter := bson.M{"_id": idPrimitive}
-	_, err2 := coll.DeleteOne(context.Background(), filter, nil)
-	CheckError(err2)
+	_, err = coll.DeleteOne(context.Background(), filter, nil)
+	CheckError(err)
 }
 
 func rowCount(db *sql.DB, table string) (count int) {
@@ -135,5 +156,6 @@ func removeRow(db *sql.DB, id int) {
 func CheckError(err error) {
 	if err != nil {
 		errors.Errorf("\nproblem here! %v", err)
+		panic(err) // not great form, but it's low stakes
 	}
 }

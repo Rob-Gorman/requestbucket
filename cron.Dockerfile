@@ -22,7 +22,7 @@ RUN chmod 0744 requestcron
 RUN touch /etc/cron.d/crontask
 RUN chmod 0744 /etc/cron.d/crontask
 # Set up cron job
-RUN echo '*/5 * * * * /requestcron >> /var/log/cron.log 2>&1' > /etc/cron.d/crontask
+RUN echo '* * * * * /requestcron >> /var/log/cron.log 2>&1' > /etc/cron.d/crontask
 # Apply cronjob
 RUN crontab /etc/cron.d/crontask
 
