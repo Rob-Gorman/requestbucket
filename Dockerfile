@@ -10,7 +10,9 @@ RUN npm i
 RUN npm run build
 
 ## App
-FROM node AS requestbucket
+FROM alpine AS requestbucket
+
+RUN apk add --update nodejs npm
 
 WORKDIR /requestbucket
 
@@ -18,7 +20,7 @@ COPY --from=static /react/build ./build
 
 COPY ./requestbucket .
 
-RUN npm i
+RUN npm ci
 
 CMD ["node", "index.js"]
 
